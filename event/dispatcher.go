@@ -21,13 +21,13 @@ func (d *dispatcher) addAsyncListener(eventName string, listener Listener) {
 }
 
 // 是否存在异步监听器
-func (d *dispatcher) isExistAsyncListener(e Event) bool {
-	_, exist := d.asyncListenersMap[e.Name()]
+func (d *dispatcher) isExistAsyncListener(e *Event) bool {
+	_, exist := d.asyncListenersMap[e.Name]
 	return exist
 }
 
 // 依次调用注册在事件上的监听器
-func (d *dispatcher) dispatch(e Event, async bool) (collector *HandleResCollector) {
+func (d *dispatcher) dispatch(e *Event, async bool) (collector *HandleResCollector) {
 	var (
 		listeners []Listener
 		exist     bool
@@ -36,11 +36,11 @@ func (d *dispatcher) dispatch(e Event, async bool) (collector *HandleResCollecto
 	collector = newHandleResCollector()
 
 	if async {
-		if listeners, exist = d.asyncListenersMap[e.Name()]; !exist {
+		if listeners, exist = d.asyncListenersMap[e.Name]; !exist {
 			return collector
 		}
 	} else {
-		if listeners, exist = d.syncListenersMap[e.Name()]; !exist {
+		if listeners, exist = d.syncListenersMap[e.Name]; !exist {
 			return collector
 		}
 	}

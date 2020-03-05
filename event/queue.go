@@ -1,8 +1,9 @@
 package event
 
 type Queue interface {
-	Push(e Event) error
-	Pop() <-chan Event
+	Push(*Event) error
+	Pull() ([]*Event, error)
+	Ack(id int64) error
 }
 
 type queuePair struct {

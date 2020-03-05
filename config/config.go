@@ -6,10 +6,12 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/Orlion/alkaid/client"
+	"github.com/Orlion/alkaid/http"
 )
 
 type Conf struct {
 	Clients *client.Conf
+	Http    *http.Conf
 }
 
 var (

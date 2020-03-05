@@ -2,7 +2,7 @@ package event
 
 // 监听器抽象
 type Listener interface {
-	Handle(Event) *HandleRes
+	Handle(*Event) *HandleRes
 	Name() string
 }
 

@@ -71,7 +71,7 @@ func NewApp() (app *App, err error) {
 	return
 }
 
-func (app *App) graceExit(callback func()) {
+func (app *App) GraceExit(callback func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {

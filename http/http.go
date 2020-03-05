@@ -11,7 +11,8 @@ import (
 )
 
 type Server struct {
-	Srv  *http.Server
+	Gin  *gin.Engine
+	srv  *http.Server
 	conf *Conf
 }
 
@@ -29,15 +30,18 @@ func New(conf *Conf) *Server {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	gin := gin.New()
+
 	srv := &http.Server{
-		Handler:      gin.New(),
+		Handler:      gin,
 		ReadTimeout:  time.Duration(conf.ReadTimeout) * time.Millisecond,
 		WriteTimeout: time.Duration(conf.WriteTimeout) * time.Millisecond,
 	}
 
 	return &Server{
-		Srv:  srv,
+		srv:  srv,
 		conf: conf,
+		Gin:  gin,
 	}
 }
 
@@ -48,12 +52,12 @@ func (s *Server) Run() error {
 		return err
 	}
 
-	s.Srv.Serve(listener)
+	s.srv.Serve(listener)
 
 	return nil
 }
 
 func (s *Server) Exit() {
 	ctx, _ := context.WithTimeout(context.TODO(), 1*time.Second)
-	s.Srv.Shutdown(ctx)
+	s.srv.Shutdown(ctx)
 }

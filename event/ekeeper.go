@@ -4,18 +4,23 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/Orlion/alkaid/client"
+	"github.com/sirupsen/logrus"
 )
 
 type Ekeeper struct {
 	d      *dispatcher
 	queues map[string]*queuePair
 	isExit bool
+	logger *client.Log
 }
 
-func New() (er *Ekeeper) {
+func NewEkeeper(logger *client.Log) (er *Ekeeper) {
 	er = &Ekeeper{
 		d:      newDispatcher(),
 		queues: make(map[string]*queuePair),
+		logger: logger,
 	}
 
 	return
@@ -68,40 +73,49 @@ func (ek *Ekeeper) Publish(e *Event, queueName string) (c handleCode, err error)
 }
 
 func (ek *Ekeeper) Listen() {
+	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Run...")
 	waitGroup := sync.WaitGroup{}
-	for _, qp := range ek.queues {
+	for _, qPair := range ek.queues {
+		ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen queue listen")
 		waitGroup.Add(1)
-		go func(qp *queuePair) {
-			waitGroupChild := sync.WaitGroup{}
+		go func(qPair *queuePair) {
 		I:
 			for {
 				time.Sleep(1 * time.Second)
 
-				events, err := qp.queue.Pull()
+				events, err := qPair.queue.Pull()
 				if err != nil {
+					ek.logger.Error(logrus.Fields{
+						"err": err,
+					}, "[App] Ekeeper Listen queue pull err")
 					continue // TODO
 				}
 
 				for _, e := range events {
+					ek.logger.Trace(logrus.Fields{
+						"e": e,
+					}, "[App] Ekeeper Listen event")
+
 					if ek.isExit {
+						ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen receive exit")
 						break I
 					}
 
-					<-qp.limiter
-					waitGroupChild.Add(1)
+					<-qPair.limiter
+					waitGroup.Add(1)
 					go func(e *Event) {
 						ek.d.dispatch(e, true)
-						qp.queue.Ack(e.Id)
-						qp.limiter <- struct{}{}
-						waitGroupChild.Done()
+						qPair.queue.Ack(e.Id)
+						qPair.limiter <- struct{}{}
+						waitGroup.Done()
 					}(e)
 				}
 			}
-			waitGroupChild.Wait()
 			waitGroup.Done()
-		}(qp)
+		}(qPair)
 	}
 	waitGroup.Wait()
+	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper exit...")
 }
 
 func (ek *Ekeeper) Exit() {

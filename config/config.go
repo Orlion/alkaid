@@ -19,7 +19,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&confFilePath, "conf", "conf.toml", "default config path")
+	flag.StringVar(&confFilePath, "conf", "app.toml", "default config path")
 }
 
 func New() (conf *Conf, err error) {

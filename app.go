@@ -13,6 +13,7 @@ import (
 	"github.com/Orlion/alkaid/config"
 	"github.com/Orlion/alkaid/event"
 	"github.com/Orlion/alkaid/http"
+	"github.com/sirupsen/logrus"
 )
 
 type App struct {
@@ -55,9 +56,13 @@ func NewApp() (app *App, err error) {
 		return
 	}
 
-	ekeeper := event.New()
+	ekeeper := event.NewEkeeper(log)
 
-	server := http.New(conf.Http)
+	server, err := http.New(conf.Http, log)
+	if err != nil {
+		err = fmt.Errorf("new http error: [%w]", err)
+		return
+	}
 
 	app = &App{
 		Clients: &clients{
@@ -78,6 +83,9 @@ func (app *App) GraceExit(callback func()) {
 		s := <-c
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			app.Clients.Log.Trace(logrus.Fields{
+				"signal": s,
+			}, "[App] GraceExit")
 			app.Ekeeper.Exit()
 			app.Server.Exit()
 			callback()

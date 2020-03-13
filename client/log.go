@@ -1,7 +1,6 @@
 package client
 
 import (
-	"errors"
 	"path"
 	"time"
 
@@ -50,10 +49,6 @@ func NewLog(conf *LogConf) (log *Log, err error) {
 		pathMap,
 		&logrus.JSONFormatter{},
 	))
-
-	logrus.RegisterExitHandler(func() {
-		panic(errors.New("logrus exit"))
-	})
 
 	return
 }

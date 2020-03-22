@@ -16,7 +16,7 @@ type Ekeeper struct {
 	logger *client.Log
 }
 
-func NewEkeeper(logger *client.Log) (er *Ekeeper) {
+func NewEkeeper(logger *client.Log) (er *Ekeeper, err error) {
 	er = &Ekeeper{
 		d:      newDispatcher(),
 		queues: make(map[string]*queuePair),

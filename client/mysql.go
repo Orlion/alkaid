@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/pkg/errors"
 	"time"
 
 	"github.com/jinzhu/gorm"
@@ -8,7 +9,7 @@ import (
 )
 
 type Mysql struct {
-	Conns map[string]*gorm.DB
+	conns map[string]*gorm.DB
 }
 
 type MysqlConf struct {
@@ -23,18 +24,27 @@ type MysqlConf struct {
 
 func NewMysql(mysqlConf *MysqlConf) (mysql *Mysql, err error) {
 	mysql = &Mysql{}
-	mysql.Conns = make(map[string]*gorm.DB)
+	mysql.conns = make(map[string]*gorm.DB)
 
 	for key, connConf := range mysqlConf.Conns {
-		if mysql.Conns[key], err = gorm.Open("mysql", connConf.Dsn); nil != err {
+		if mysql.conns[key], err = gorm.Open("mysql", connConf.Dsn); nil != err {
 			return
 		}
 
-		mysql.Conns[key].DB().SetConnMaxLifetime(connConf.ConnMaxLifetime * time.Second)
-		mysql.Conns[key].DB().SetMaxIdleConns(connConf.MaxIdleConns)
-		mysql.Conns[key].DB().SetMaxOpenConns(connConf.MaxOpenConns)
+		mysql.conns[key].DB().SetConnMaxLifetime(connConf.ConnMaxLifetime * time.Second)
+		mysql.conns[key].DB().SetMaxIdleConns(connConf.MaxIdleConns)
+		mysql.conns[key].DB().SetMaxOpenConns(connConf.MaxOpenConns)
 
-		mysql.Conns[key].LogMode(connConf.LogMode)
+		mysql.conns[key].LogMode(connConf.LogMode)
+	}
+
+	return
+}
+
+func (mysql *Mysql)Conn(name string) (conn *gorm.DB, err error) {
+	conn, exist := mysql.conns[name]
+	if !exist {
+		err = errors.New("not found conn:" + name)
 	}
 
 	return

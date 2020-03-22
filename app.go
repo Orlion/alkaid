@@ -1,7 +1,6 @@
 package alkaid
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -10,17 +9,11 @@ import (
 	"syscall"
 
 	"github.com/Orlion/alkaid/client"
-	"github.com/Orlion/alkaid/config"
-	"github.com/Orlion/alkaid/event"
-	"github.com/Orlion/alkaid/http"
 	"github.com/sirupsen/logrus"
 )
 
-type App struct {
-	context.Context
+type application struct {
 	Clients *clients
-	Ekeeper *event.Ekeeper
-	Server  *http.Server
 }
 
 type clients struct {
@@ -29,19 +22,21 @@ type clients struct {
 }
 
 func init() {
-	runtime.GOMAXPROCS(runtime.NumCPU()) // 用满所有核心
+	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-func NewApp() (app *App, err error) {
+var App *application
+
+func New() (app *application, err error) {
 	var (
-		conf  *config.Conf
+		conf  *Conf
 		mysql *client.Mysql
 		log   *client.Log
 	)
 
 	flag.Parse()
 
-	if conf, err = config.New(); err != nil {
+	if conf, err = newConf(); err != nil {
 		err = fmt.Errorf("config error: [%w]", err)
 		return
 	}
@@ -56,27 +51,19 @@ func NewApp() (app *App, err error) {
 		return
 	}
 
-	ekeeper := event.NewEkeeper(log)
-
-	server, err := http.New(conf.Http, log)
-	if err != nil {
-		err = fmt.Errorf("new http error: [%w]", err)
-		return
-	}
-
-	app = &App{
+	app = &application{
 		Clients: &clients{
 			Mysql: mysql,
 			Log:   log,
 		},
-		Ekeeper: ekeeper,
-		Server:  server,
 	}
+
+	App = app
 
 	return
 }
 
-func (app *App) GraceExit(callback func()) {
+func (app *application) GraceExit(callback func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {
@@ -85,10 +72,12 @@ func (app *App) GraceExit(callback func()) {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
 			app.Clients.Log.Trace(logrus.Fields{
 				"signal": s,
-			}, "[App] GraceExit")
-			app.Ekeeper.Exit()
-			app.Server.Exit()
+			}, "[App] GraceExit begin")
 			callback()
+			// clients exit...
+			app.Clients.Log.Trace(logrus.Fields{
+				"signal": s,
+			}, "[App] GraceExit end")
 			return
 		case syscall.SIGHUP:
 		default:

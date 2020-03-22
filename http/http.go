@@ -42,12 +42,12 @@ func New(conf *Conf, log *client.Log) (*Server, error) {
 
 	// disabled default writer
 	gin.DefaultWriter = bufio.NewWriter(src)
-	gin := gin.New()
+	engine := gin.New()
 
-	gin.Use(logrusLogger(log), recovery(log))
+	engine.Use(logrusLogger(log), recovery(log))
 
 	srv := &http.Server{
-		Handler:      gin,
+		Handler:      engine,
 		ReadTimeout:  time.Duration(conf.ReadTimeout) * time.Millisecond,
 		WriteTimeout: time.Duration(conf.WriteTimeout) * time.Millisecond,
 	}
@@ -55,7 +55,7 @@ func New(conf *Conf, log *client.Log) (*Server, error) {
 	return &Server{
 		srv:  srv,
 		conf: conf,
-		Gin:  gin,
+		Gin:  engine,
 		log:  log,
 	}, nil
 }

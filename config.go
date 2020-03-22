@@ -1,4 +1,4 @@
-package config
+package alkaid
 
 import (
 	"errors"
@@ -6,12 +6,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/Orlion/alkaid/client"
-	"github.com/Orlion/alkaid/http"
 )
 
 type Conf struct {
 	Clients *client.Conf
-	Http    *http.Conf
 }
 
 var (
@@ -22,7 +20,7 @@ func init() {
 	flag.StringVar(&confFilePath, "conf", "app.toml", "default config path")
 }
 
-func New() (conf *Conf, err error) {
+func newConf() (conf *Conf, err error) {
 	var (
 		tmpConf *Conf
 	)

@@ -1,9 +1,13 @@
 package http
 
 import (
+	"bytes"
+	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -42,9 +46,11 @@ func logrusLogger(log *client.Log) gin.HandlerFunc {
 }
 
 func recovery(log *client.Log) gin.HandlerFunc {
-	return func(context *gin.Context) {
+	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
+				// Check for a broken connection, as it is not really a
+				// condition that warrants a panic stack trace.
 				var brokenPipe bool
 				if ne, ok := err.(*net.OpError); ok {
 					if se, ok := ne.Err.(*os.SyscallError); ok {
@@ -54,19 +60,50 @@ func recovery(log *client.Log) gin.HandlerFunc {
 					}
 				}
 
-				log.Error(logrus.Fields{
-					"err": err,
-				}, "[App] Http recovery")
+				stack := stack(3)
+				httpRequest, _ := httputil.DumpRequest(c.Request, false)
+				headers := strings.Split(string(httpRequest), "\r\n")
+				for idx, header := range headers {
+					current := strings.Split(header, ":")
+					if current[0] == "Authorization" {
+						headers[idx] = current[0] + ": *"
+					}
+				}
+				if brokenPipe {
+					log.Error(logrus.Fields{
+						"err":         err,
+						"httpRequest": string(httpRequest),
+					}, "[App] Http recovery")
+				} else {
+					log.Error(logrus.Fields{
+						"err":     err,
+						"headers": strings.Join(headers, "\r\n"),
+						"stack":   stack,
+					}, "[App] Http recovery")
+				}
 
 				// If the connection is dead, we can't write a status to it.
 				if brokenPipe {
-					context.Error(err.(error)) // nolint: errcheck
-					context.Abort()
+					c.Error(err.(error)) // nolint: errcheck
+					c.Abort()
 				} else {
-					context.AbortWithStatus(http.StatusInternalServerError)
+					c.AbortWithStatus(http.StatusInternalServerError)
 				}
 			}
 		}()
-		context.Next()
+		c.Next()
 	}
+}
+
+// 调用栈
+func stack(skip int) string {
+	buf := new(bytes.Buffer)
+	for i := skip; ; i++ {
+		pc, file, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		fmt.Fprintf(buf, "%s:%d (0x%x)\n", file, line, pc)
+	}
+	return buf.String()
 }

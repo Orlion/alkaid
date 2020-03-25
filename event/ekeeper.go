@@ -10,10 +10,11 @@ import (
 )
 
 type Ekeeper struct {
-	d      *dispatcher
-	queues map[string]*queuePair
-	isExit bool
-	logger *client.Log
+	d         *dispatcher
+	queues    map[string]*queuePair
+	isExit    bool
+	waitGroup sync.WaitGroup
+	logger    *client.Log
 }
 
 func NewEkeeper(logger *client.Log) (er *Ekeeper, err error) {
@@ -54,7 +55,7 @@ func (ek *Ekeeper) Publish(e *Event, queueName string) (c handleCode, err error)
 		qp    *queuePair
 	)
 
-	if ek.d.isExistAsyncListener(e) {
+	if ek.d.isExistAsyncListener(e) || queueName != "" {
 		// 写入到持久化队列中
 		if qp, exist = ek.queues[queueName]; !exist {
 			err = errors.New("Can not found queue:" + queueName)
@@ -74,13 +75,20 @@ func (ek *Ekeeper) Publish(e *Event, queueName string) (c handleCode, err error)
 
 func (ek *Ekeeper) Listen() {
 	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Run...")
-	waitGroup := sync.WaitGroup{}
-	for _, qPair := range ek.queues {
-		ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen queue listen")
-		waitGroup.Add(1)
+	ek.waitGroup = sync.WaitGroup{}
+	for qName, qPair := range ek.queues {
+		ek.logger.Trace(logrus.Fields{
+			"queue": qName,
+		}, "[App] Ekeeper queue listen...")
+		ek.waitGroup.Add(1)
 		go func(qPair *queuePair) {
 		I:
 			for {
+				if ek.isExit {
+					ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen receive exit")
+					break I
+				}
+
 				time.Sleep(1 * time.Second)
 
 				events, err := qPair.queue.Pull()
@@ -97,27 +105,27 @@ func (ek *Ekeeper) Listen() {
 					}, "[App] Ekeeper Listen event")
 
 					if ek.isExit {
-						ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen receive exit")
+						ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper Listen receive exit1")
 						break I
 					}
 
 					<-qPair.limiter
-					waitGroup.Add(1)
+					ek.waitGroup.Add(1)
 					go func(e *Event) {
 						ek.d.dispatch(e, true)
 						qPair.queue.Ack(e.Id)
 						qPair.limiter <- struct{}{}
-						waitGroup.Done()
+						ek.waitGroup.Done()
 					}(e)
 				}
 			}
-			waitGroup.Done()
+			ek.waitGroup.Done()
 		}(qPair)
 	}
-	waitGroup.Wait()
-	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper exit...")
 }
 
 func (ek *Ekeeper) Exit() {
+	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper exit begin")
 	ek.isExit = true
+	ek.waitGroup.Wait()
 }

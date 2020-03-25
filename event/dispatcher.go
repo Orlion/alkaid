@@ -27,27 +27,25 @@ func (d *dispatcher) isExistAsyncListener(e *Event) bool {
 }
 
 // 依次调用注册在事件上的监听器
-func (d *dispatcher) dispatch(e *Event, async bool) (collector *HandleResCollector) {
+func (d *dispatcher) dispatch(e *Event, async bool) (handleResList []*HandleRes) {
 	var (
 		listeners []Listener
 		exist     bool
 	)
 
-	collector = newHandleResCollector()
-
 	if async {
 		if listeners, exist = d.asyncListenersMap[e.Name]; !exist {
-			return collector
+			return
 		}
 	} else {
 		if listeners, exist = d.syncListenersMap[e.Name]; !exist {
-			return collector
+			return
 		}
 	}
 
 	for _, listener := range listeners {
-		collector.collect(listener.Name(), listener.Handle(e))
+		handleResList = append(handleResList, listener(e))
 	}
 
-	return collector
+	return
 }

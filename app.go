@@ -19,6 +19,7 @@ type application struct {
 type clients struct {
 	Mysql *client.Mysql
 	Log   *client.Log
+	Ek *client.Ek
 }
 
 func init() {

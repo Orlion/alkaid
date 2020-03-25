@@ -49,7 +49,7 @@ func (ek *Ekeeper) AsyncSubscribe(eventName string, listener Listener) {
 	ek.d.addAsyncListener(eventName, listener)
 }
 
-func (ek *Ekeeper) Publish(e *Event, queueName string) (c handleCode, err error) {
+func (ek *Ekeeper) Publish(e *Event, queueName string) (handleResList []*HandleRes, err error) {
 	var (
 		exist bool
 		qp    *queuePair
@@ -68,7 +68,7 @@ func (ek *Ekeeper) Publish(e *Event, queueName string) (c handleCode, err error)
 	}
 
 	// 通知同步监听器处理事件
-	ek.d.dispatch(e, false)
+	handleResList = ek.d.dispatch(e, false)
 
 	return
 }

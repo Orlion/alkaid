@@ -18,25 +18,25 @@ func NewEk(logger *Log) (ek *Ek) {
 }
 
 func (ek *Ek) AddQueue(queueName string, queue event.Queue, limit int32) {
-	return ek.Ekeeper.AddQueue(queueName, queue, limit)
+	ek.Ekeeper.AddQueue(queueName, queue, limit)
 }
 
 func (ek *Ek) SyncSubscribe(eventName string, listener event.Listener) {
-	return ek.Ekeeper.SyncSubscribe(eventName, listener)
+	ek.Ekeeper.SyncSubscribe(eventName, listener)
 }
 
 func (ek *Ek) AsyncSubscribe(eventName string, listener event.Listener) {
-	return ek.Ekeeper.AsyncSubscribe(eventName, listener)
+	ek.Ekeeper.AsyncSubscribe(eventName, listener)
 }
 
-func (ek *Ek) Publish(e *Event, queueName string) (c handleCode, err error) {
+func (ek *Ek) Publish(e *event.Event, queueName string) (handleResList []*event.HandleRes, err error) {
 	return ek.Ekeeper.Publish(e, queueName)
 }
 
 func (ek *Ek) Listen() {
-	return ek.Ekeeper.Listen()
+	ek.Ekeeper.Listen()
 }
 
 func (ek *Ek) Exit() {
-	return ek.Ekeeper.Exit()
+	ek.Ekeeper.Exit()
 }

@@ -12,23 +12,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type application struct {
+type App struct {
 	Clients *clients
 }
 
 type clients struct {
 	Mysql *client.Mysql
 	Log   *client.Log
-	Ek *client.Ek
+	Ek    *client.Ek
 }
 
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-var App *application
-
-func New() (app *application, err error) {
+func New() (app *App, err error) {
 	var (
 		conf  *Conf
 		mysql *client.Mysql
@@ -52,19 +50,17 @@ func New() (app *application, err error) {
 		return
 	}
 
-	app = &application{
+	app = &App{
 		Clients: &clients{
 			Mysql: mysql,
 			Log:   log,
 		},
 	}
 
-	App = app
-
 	return
 }
 
-func (app *application) GraceExit(callback func()) {
+func (app *App) GraceExit(callback func()) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 	for {

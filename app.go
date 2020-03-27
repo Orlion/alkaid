@@ -13,6 +13,7 @@ import (
 )
 
 type App struct {
+	name    string
 	Clients *clients
 }
 
@@ -26,7 +27,7 @@ func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
-func New() (app *App, err error) {
+func New(name string) (app *App, err error) {
 	var (
 		conf  *Conf
 		mysql *client.Mysql
@@ -51,6 +52,7 @@ func New() (app *App, err error) {
 	}
 
 	app = &App{
+		name: name,
 		Clients: &clients{
 			Mysql: mysql,
 			Log:   log,
@@ -80,4 +82,8 @@ func (app *App) GraceExit(callback func()) {
 		default:
 		}
 	}
+}
+
+func (app *App) GetName() string {
+	return app.name
 }

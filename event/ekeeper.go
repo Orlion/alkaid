@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Orlion/alkaid/client"
 	"github.com/sirupsen/logrus"
 )
 
@@ -14,10 +13,10 @@ type Ekeeper struct {
 	queues    map[string]*queuePair
 	isExit    bool
 	waitGroup sync.WaitGroup
-	logger    *client.Log
+	logger    Log
 }
 
-func NewEkeeper(logger *client.Log) (er *Ekeeper, err error) {
+func NewEkeeper(logger Log) (er *Ekeeper, err error) {
 	er = &Ekeeper{
 		d:      newDispatcher(),
 		queues: make(map[string]*queuePair),

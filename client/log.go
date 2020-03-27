@@ -72,11 +72,3 @@ func (log *Log) Warn(fields logrus.Fields, args ...interface{}) {
 func (log *Log) Error(fields logrus.Fields, args ...interface{}) {
 	log.logger.WithFields(fields).Error(args)
 }
-
-func (log *Log) Fatal(fields logrus.Fields, args ...interface{}) {
-	log.logger.WithFields(fields).Fatal(args)
-}
-
-func (log *Log) Panic(fields logrus.Fields, args ...interface{}) {
-	log.logger.WithFields(fields).Panic(args)
-}

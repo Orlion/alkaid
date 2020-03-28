@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,20 +38,20 @@ func (r *Response) ResultJson(c *gin.Context, code int, msg string, data interfa
 	})
 }
 
-func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.VarMap) (err error) {
+func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.VarMap) {
 	t, err := r.viewSet.GetTemplate(viewName)
 	if err != nil {
-		err = fmt.Errorf("视图获取失败: [%w]", err)
+		ctx.AbortWithError(http.StatusInternalServerError, errors.New("视图加载失败"))
 		return
 	}
 
 	var w bytes.Buffer
 	if err = t.Execute(&w, vars, nil); err != nil {
-		err = fmt.Errorf("视图渲染失败: [%w]", err)
+		fmt.Println(err)
+		ctx.AbortWithError(http.StatusInternalServerError, errors.New("视图渲染失败"))
 		return
 	}
 
 	ctx.Data(r.code2StatusCode(code), "text/html", w.Bytes())
-
 	return
 }

@@ -56,6 +56,7 @@ func New(name string) (app *App, err error) {
 		Clients: &clients{
 			Mysql: mysql,
 			Log:   log,
+			Ek: client.NewEk(log),
 		},
 	}
 
@@ -69,6 +70,7 @@ func (app *App) GraceExit(callback func()) {
 		s := <-c
 		switch s {
 		case syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT:
+			app.Clients.Ek.Exit()
 			app.Clients.Log.Trace(logrus.Fields{
 				"signal": s,
 			}, "[App] GraceExit begin")

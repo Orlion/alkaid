@@ -80,7 +80,7 @@ func (ek *Ekeeper) Listen() {
 			"queue": qName,
 		}, "[App] Ekeeper queue listen...")
 		ek.waitGroup.Add(1)
-		go func(qPair *queuePair) {
+		go func(qp *queuePair) {
 		I:
 			for {
 				if ek.isExit {
@@ -90,7 +90,7 @@ func (ek *Ekeeper) Listen() {
 
 				time.Sleep(1 * time.Second)
 
-				events, err := qPair.queue.Pull()
+				events, err := qp.queue.Pull()
 				if err != nil {
 					ek.logger.Error(logrus.Fields{
 						"err": err,
@@ -108,12 +108,12 @@ func (ek *Ekeeper) Listen() {
 						break I
 					}
 
-					<-qPair.limiter
+					qp.limiter <- struct{}{}
 					ek.waitGroup.Add(1)
 					go func(e *Event) {
 						ek.d.dispatch(e, true)
-						qPair.queue.Ack(e.Id)
-						qPair.limiter <- struct{}{}
+						qp.queue.Ack(e.Id)
+						<-qp.limiter
 						ek.waitGroup.Done()
 					}(e)
 				}
@@ -124,7 +124,7 @@ func (ek *Ekeeper) Listen() {
 }
 
 func (ek *Ekeeper) Exit() {
-	ek.logger.Trace(logrus.Fields{}, "[App] Ekeeper exit begin")
+	ek.logger.Trace(logrus.Fields{}, "Ekeeper exit begin")
 	ek.isExit = true
 	ek.waitGroup.Wait()
 }

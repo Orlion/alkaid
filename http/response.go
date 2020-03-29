@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/CloudyKit/jet"
@@ -45,13 +44,15 @@ func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.Va
 		return
 	}
 
+	statusCode := r.code2StatusCode(code)
+	vars.Set("statusCode", statusCode)
+
 	var w bytes.Buffer
 	if err = t.Execute(&w, vars, nil); err != nil {
-		fmt.Println(err)
 		ctx.AbortWithError(http.StatusInternalServerError, errors.New("视图渲染失败"))
 		return
 	}
 
-	ctx.Data(r.code2StatusCode(code), "text/html", w.Bytes())
+	ctx.Data(statusCode, "text/html", w.Bytes())
 	return
 }

@@ -9,6 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Seo struct {
+	Title       string
+	Description string
+	Keywords    string
+	Author      string
+}
+
 type Response struct {
 	code2StatusCodeMap map[int]int
 	viewSet            *jet.Set
@@ -37,7 +44,7 @@ func (r *Response) ResultJson(c *gin.Context, code int, msg string, data interfa
 	})
 }
 
-func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.VarMap) {
+func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.VarMap, seo *Seo) {
 	t, err := r.viewSet.GetTemplate(viewName)
 	if err != nil {
 		ctx.AbortWithError(http.StatusInternalServerError, errors.New("视图加载失败"))
@@ -46,6 +53,8 @@ func (r *Response) View(ctx *gin.Context, code int, viewName string, vars jet.Va
 
 	statusCode := r.code2StatusCode(code)
 	vars.Set("statusCode", statusCode)
+	vars.Set("seo", seo)
+	vars.Set("requestUrl", ctx.Request.URL)
 
 	var w bytes.Buffer
 	if err = t.Execute(&w, vars, nil); err != nil {

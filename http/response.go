@@ -39,7 +39,7 @@ func (r *Response) code2StatusCode(code int) int {
 func (r *Response) ResultJson(c *gin.Context, code int, msg string, data interface{}) {
 	c.JSON(r.code2StatusCode(code), gin.H{
 		"code": code,
-		"msg":  msg,
+		"message":  msg,
 		"data": data,
 	})
 }
